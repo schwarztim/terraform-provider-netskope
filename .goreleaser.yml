@@ -1,42 +1,47 @@
 # This is a YAML document
 ---
 # Define the build configuration
-build:
-  goos:
-    - linux
-    - windows
-    - darwin
-  goarch:
-    - amd64
-  ldflags: "-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}"
+builds:
+  - env:
+      # goreleaser does not work with CGO, it could also complicate
+      # usage by users in CI/CD systems like Terraform Cloud where
+      # they are unable to install libraries.
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    ldflags: "-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}"
 
 # Define the archive configuration
-archive:
-  format: zip
-  name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: zip
 
 # Define the checksum configuration
 checksum:
-  name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
   algorithm: sha256
 
 # Define the signing configuration
 signs:
-  - cmd: gpg --output "${signature}" --detach-sign "${artifact}"
-    artifacts:
+  - artifacts:
       - checksum
+    cmd: gpg --output "${signature}" --detach-sign "${artifact}"
 
 # Define the release configuration
 release:
+  draft: false
   github:
     owner: your-github-username
     name: your-github-repo-name
-  draft: false
-  prerelease: false
   body: "Release {{ .Version }}"
+  prerelease: false
 
 # Define the hooks configuration
 hooks:
-  # Run 'go mod tidy' before building
   pre:
     - go mod tidy
